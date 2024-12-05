@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Analysis</title>
+</head>
+<body>
+  <h1>Product Analysis App</h1>
+
+  <!-- Form for Image Upload -->
+  <form id="uploadForm" enctype="multipart/form-data">
+    <label for="file">Upload an Image:</label>
+    <input type="file" id="file" name="file" accept="image/*" required>
+    <button type="submit">Analyze</button>
+  </form>
+
+  <div id="output"></div>
+  <hr>
+
+  <!-- Button to Download Excel -->
+  <button id="downloadExcel">Download Excel</button>
+
+  <script>
+    const baseURL = `${window.location.origin}`;
+
+    const uploadForm = document.getElementById('uploadForm');
+    const downloadButton = document.getElementById('downloadExcel');
+    const outputDiv = document.getElementById('output');
+
+    // Handle Image Upload
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(uploadForm);
+
+      try {
+        const response = await fetch(`${baseURL}/analyze-image/`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        outputDiv.innerHTML = `<p><strong>Response:</strong> ${JSON.stringify(data)}</p>`;
+      } catch (error) {
+        outputDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+      }
+    });
+
+    // Handle Excel Download
+    downloadButton.addEventListener('click', () => {
+      window.location.href = `${baseURL}/download-excel/`;
+    });
+  </script>
+</body>
+</html>

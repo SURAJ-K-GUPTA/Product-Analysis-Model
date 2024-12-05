@@ -1,1 +1,6 @@
 fastapi[all]
+uvicorn==0.22.0
+pillow==9.5.0
+torch==2.0.1
+git+https://github.com/huggingface/transformers@main#egg=transformers
+openpyxl==3.1.2
