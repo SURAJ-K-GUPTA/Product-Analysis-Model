@@ -64,37 +64,36 @@
 
     // Handle Image Upload and Analysis
     uploadForm.addEventListener('submit', async (e) => {
-      e.preventDefault(); // Prevent the default form submission
+      e.preventDefault();
       const formData = new FormData(uploadForm);
 
       try {
-        // Send a POST request to the /analyze-image/ endpoint
         const response = await fetch(`${baseURL}/analyze-image/`, {
           method: 'POST',
           body: formData,
         });
 
         if (!response.ok) {
-          // Handle non-200 HTTP status codes
           const errorText = await response.text();
           resultDiv.innerHTML = `<p class="error">Error: ${errorText}</p>`;
+          console.error("Backend error:", errorText);
           return;
         }
 
-        // Parse and display the JSON response
         const data = await response.json();
         if (data.error) {
           resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
         } else {
-          resultDiv.innerHTML = `
-            <p><strong>Message:</strong> ${data.message}</p>
-            <p><strong>Output:</strong></p>
-            <pre>${data.output}</pre>
-          `;
+        resultDiv.innerHTML = `
+          <p><strong>Message:</strong> ${data.message}</p>
+          <p><strong>Output:</strong></p>
+          <pre>${data.output}</pre>
+        `;
         }
       } catch (error) {
         // Handle fetch or network errors
         resultDiv.innerHTML = `<p class="error">Unexpected Error: ${error.message}</p>`;
+        console.error("Fetch error:", error);
       }
     });
 
@@ -105,3 +104,4 @@
   </script>
 </body>
 </html>
+
