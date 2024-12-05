@@ -22,6 +22,17 @@
     .error {
       color: red;
     }
+    .button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .button:hover {
+      background-color: #0056b3;
+    }
   </style>
 </head>
 <body>
@@ -31,7 +42,7 @@
   <form id="uploadForm" enctype="multipart/form-data">
     <label for="file">Upload an Image:</label>
     <input type="file" id="file" name="file" accept="image/*" required>
-    <button type="submit">Analyze</button>
+    <button type="submit" class="button">Analyze</button>
   </form>
 
   <!-- Output Section -->
@@ -43,7 +54,7 @@
   <hr>
 
   <!-- Button to Download Excel -->
-  <button id="downloadExcel">Download Excel</button>
+  <button id="downloadExcel" class="button">Download Excel</button>
 
   <script>
     const baseURL = `${window.location.origin}`;
@@ -53,38 +64,39 @@
 
     // Handle Image Upload and Analysis
     uploadForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(uploadForm);
+      e.preventDefault(); // Prevent the default form submission
+      const formData = new FormData(uploadForm);
 
-    try {
+      try {
+        // Send a POST request to the /analyze-image/ endpoint
         const response = await fetch(`${baseURL}/analyze-image/`, {
-            method: 'POST',
-            body: formData,
+          method: 'POST',
+          body: formData,
         });
 
         if (!response.ok) {
-            // Handle HTTP errors
-            const errorText = await response.text();
-            resultDiv.innerHTML = `<p class="error">Error: ${errorText}</p>`;
-            return;
+          // Handle non-200 HTTP status codes
+          const errorText = await response.text();
+          resultDiv.innerHTML = `<p class="error">Error: ${errorText}</p>`;
+          return;
         }
 
-        // Try parsing the response as JSON
+        // Parse and display the JSON response
         const data = await response.json();
         if (data.error) {
-            resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+          resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
         } else {
-            resultDiv.innerHTML = `
-                <p><strong>Message:</strong> ${data.message}</p>
-                <p><strong>Output:</strong></p>
-                <pre>${data.output}</pre>
-            `;
+          resultDiv.innerHTML = `
+            <p><strong>Message:</strong> ${data.message}</p>
+            <p><strong>Output:</strong></p>
+            <pre>${data.output}</pre>
+          `;
         }
-    } catch (error) {
-        // Handle unexpected errors
+      } catch (error) {
+        // Handle fetch or network errors
         resultDiv.innerHTML = `<p class="error">Unexpected Error: ${error.message}</p>`;
-    }
-});
+      }
+    });
 
     // Handle Excel Download
     downloadButton.addEventListener('click', () => {
