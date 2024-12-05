@@ -53,35 +53,38 @@
 
     // Handle Image Upload and Analysis
     uploadForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const formData = new FormData(uploadForm);
+    e.preventDefault();
+    const formData = new FormData(uploadForm);
 
-      try {
-        // Send the image to the backend
+    try {
         const response = await fetch(`${baseURL}/analyze-image/`, {
-          method: 'POST',
-          body: formData,
+            method: 'POST',
+            body: formData,
         });
 
-        // Parse the JSON response
-        const data = await response.json();
-
-        // Check for errors
-        if (data.error) {
-          resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
-        } else {
-          // Display the analysis result
-          resultDiv.innerHTML = `
-            <p><strong>Message:</strong> ${data.message}</p>
-            <p><strong>Output:</strong></p>
-            <pre>${data.output}</pre>
-          `;
+        if (!response.ok) {
+            // Handle HTTP errors
+            const errorText = await response.text();
+            resultDiv.innerHTML = `<p class="error">Error: ${errorText}</p>`;
+            return;
         }
-      } catch (error) {
-        // Handle network or server errors
-        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
-      }
-    });
+
+        // Try parsing the response as JSON
+        const data = await response.json();
+        if (data.error) {
+            resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+        } else {
+            resultDiv.innerHTML = `
+                <p><strong>Message:</strong> ${data.message}</p>
+                <p><strong>Output:</strong></p>
+                <pre>${data.output}</pre>
+            `;
+        }
+    } catch (error) {
+        // Handle unexpected errors
+        resultDiv.innerHTML = `<p class="error">Unexpected Error: ${error.message}</p>`;
+    }
+});
 
     // Handle Excel Download
     downloadButton.addEventListener('click', () => {
