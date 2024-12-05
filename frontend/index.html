@@ -4,6 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Product Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #output {
+      margin-top: 20px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      background-color: #f9f9f9;
+      border-radius: 5px;
+    }
+    .error {
+      color: red;
+    }
+  </style>
 </head>
 <body>
   <h1>Product Analysis App</h1>
@@ -15,7 +34,12 @@
     <button type="submit">Analyze</button>
   </form>
 
-  <div id="output"></div>
+  <!-- Output Section -->
+  <div id="output">
+    <h2>Analysis Result</h2>
+    <p id="result">Results will be displayed here after analysis.</p>
+  </div>
+
   <hr>
 
   <!-- Button to Download Excel -->
@@ -23,25 +47,39 @@
 
   <script>
     const baseURL = `${window.location.origin}`;
-
     const uploadForm = document.getElementById('uploadForm');
     const downloadButton = document.getElementById('downloadExcel');
-    const outputDiv = document.getElementById('output');
+    const resultDiv = document.getElementById('result');
 
-    // Handle Image Upload
+    // Handle Image Upload and Analysis
     uploadForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(uploadForm);
 
       try {
+        // Send the image to the backend
         const response = await fetch(`${baseURL}/analyze-image/`, {
           method: 'POST',
           body: formData,
         });
+
+        // Parse the JSON response
         const data = await response.json();
-        outputDiv.innerHTML = `<p><strong>Response:</strong> ${JSON.stringify(data)}</p>`;
+
+        // Check for errors
+        if (data.error) {
+          resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
+        } else {
+          // Display the analysis result
+          resultDiv.innerHTML = `
+            <p><strong>Message:</strong> ${data.message}</p>
+            <p><strong>Output:</strong></p>
+            <pre>${data.output}</pre>
+          `;
+        }
       } catch (error) {
-        outputDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+        // Handle network or server errors
+        resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
       }
     });
 

@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 import openpyxl
 import re
+import os
 import torch
 from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
 
@@ -21,12 +22,18 @@ model = Qwen2VLForConditionalGeneration.from_pretrained(
 )
 processor = AutoProcessor.from_pretrained("Qwen/Qwen2-VL-2B-Instruct")
 
-# Create an Excel workbook
-workbook = openpyxl.Workbook()
-sheet = workbook.active
-sheet.title = "Product Analysis"
-headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life"]
-sheet.append(headers)
+# Ensure the Excel file exists at startup
+@app.on_event("startup")
+def ensure_excel_file_exists():
+    file_path = "product_analysis.xlsx"
+    if not os.path.exists(file_path):
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+        sheet.title = "Product Analysis"
+        headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life"]
+        sheet.append(headers)
+        workbook.save(file_path)
+
 
 # Regular expression patterns
 packaged_product_pattern = r"Product Name: (.*)\n  - Product Category: (.*)\n  - Product Quantity: (.*)\n  - Product Count: (.*)\n  - Expiry Date: (.*)"
@@ -118,8 +125,18 @@ async def analyze_image(file: UploadFile = File(...)):
             freshness_index = shelf_life = "N/A"
 
         # Append to the Excel sheet
+        file_path = "product_analysis.xlsx"
+        if os.path.exists(file_path):
+            workbook = openpyxl.load_workbook(file_path)
+            sheet = workbook.active
+        else:
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life"]
+            sheet.append(headers)
+
         sheet.append([product_name, category, quantity, count, expiry_date, freshness_index, shelf_life])
-        workbook.save("product_analysis.xlsx")
+        workbook.save(file_path)
 
         return {"message": "Analysis completed successfully", "output": output_text}
     except Exception as e:
@@ -129,8 +146,11 @@ async def analyze_image(file: UploadFile = File(...)):
 # API endpoint to download the Excel file
 @app.get("/download-excel/")
 async def download_excel():
+    file_path = "product_analysis.xlsx"
+    if not os.path.exists(file_path):
+        raise RuntimeError(f"File at path {file_path} does not exist.")
     return FileResponse(
-        "product_analysis.xlsx",
+        file_path,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename="product_analysis.xlsx"
+        filename="product_analysis.xlsx",
     )
