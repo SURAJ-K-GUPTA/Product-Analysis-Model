@@ -53,8 +53,11 @@ def load_model_and_initialize():
         sheet.append(headers)
         workbook.save(file_path)
 
-packaged_product_pattern = r"Product Name: (.*)\n  - Product Category: (.*)\n  - Product Quantity: (.*)\n  - Product Count: (.*)\n  - Expiry Date: (.*)"
-fruits_vegetables_pattern = r"Type of fruit/vegetable: (.*)\n  - Freshness Index: (.*)\n  - Estimated Shelf Life: (.*)"
+# For packaged products
+packaged_product_pattern = r"\*\*Product Name:\*\* (.*?)\n\s*- \*\*Product Category:\*\* (.*?)\n\s*- \*\*Product Quantity:\*\* (.*?)\n\s*- \*\*Product Count:\*\* (.*?)\n\s*- \*\*Expiry Date:\*\* (.*?)\n"
+
+# For fruits and vegetables
+fruits_vegetables_pattern = r"\*\*Type of fruit/vegetable:\*\* (.*?)\n\s*- \*\*Freshness Index:\*\* (.*?)\n\s*- \*\*Estimated Shelf Life:\*\* (.*?)\n"
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_homepage():
@@ -132,8 +135,36 @@ async def analyze_image(file: UploadFile = File(...)):
         output_text = processor.batch_decode(
             output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
         )[0]
+        print(f"Model Output: {output_text}")  # Debug the model's output
 
-        # Update Excel with results
+        # Parse output text to extract relevant fields
+        # Parse output text to extract relevant fields
+        product_name = category = quantity = count = expiry_date = freshness_index = shelf_life = "N/A"
+        try:
+            # Match packaged product details
+            packaged_product_match = re.search(packaged_product_pattern, output_text)
+            if packaged_product_match:
+                product_name = packaged_product_match.group(1).strip()
+                category = packaged_product_match.group(2).strip()
+                quantity = packaged_product_match.group(3).strip()
+                count = packaged_product_match.group(4).strip()
+                expiry_date = packaged_product_match.group(5).strip()
+
+            # Match fruits and vegetables details
+            fruits_vegetables_match = re.search(fruits_vegetables_pattern, output_text)
+            if fruits_vegetables_match:
+                product_name = fruits_vegetables_match.group(1).strip()
+                category = "Fruit/Vegetable"
+                freshness_index = fruits_vegetables_match.group(2).strip()
+                shelf_life = fruits_vegetables_match.group(3).strip()
+        except Exception as e:
+            print(f"Error parsing output: {e}")
+
+        # If no data was matched, log a warning
+        if product_name == "N/A" and freshness_index == "N/A":
+            print("Warning: No data matched the expected patterns.")
+
+        # Update Excel with parsed results
         file_path = "product_analysis.xlsx"
         try:
             workbook = openpyxl.load_workbook(file_path)
@@ -142,22 +173,32 @@ async def analyze_image(file: UploadFile = File(...)):
             workbook = openpyxl.Workbook()
             sheet = workbook.active
             sheet.title = "Product Analysis"
-            headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life", "Output Text"]
+            headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life"]
             sheet.append(headers)
             workbook.save(file_path)
             workbook = openpyxl.load_workbook(file_path)
 
         sheet = workbook.active
-        # If needed, parse `output_text` for specific fields before appending
-        sheet.append([output_text])
+        sheet.append([product_name, category, quantity, count, expiry_date, freshness_index, shelf_life])
         workbook.save(file_path)
 
-        return {"message": "Analysis completed successfully", "output": output_text}
+        # Return parsed data as API response
+        return {
+            "message": "Analysis completed successfully",
+            "data": {
+                "Product Name": product_name,
+                "Category": category,
+                "Quantity": quantity,
+                "Count": count,
+                "Expiry Date": expiry_date,
+                "Freshness Index": freshness_index,
+                "Shelf Life": shelf_life
+            }
+        }
 
     except Exception as e:
         print(f"Backend error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
-
 @app.get("/download-excel/")
 async def download_excel():
     file_path = "product_analysis.xlsx"

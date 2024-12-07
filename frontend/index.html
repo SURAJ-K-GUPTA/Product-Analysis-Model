@@ -33,6 +33,10 @@
     .button:hover {
       background-color: #0056b3;
     }
+    .loading {
+      font-style: italic;
+      color: gray;
+    }
   </style>
 </head>
 <body>
@@ -67,6 +71,9 @@
       e.preventDefault();
       const formData = new FormData(uploadForm);
 
+      // Show loading text
+      resultDiv.innerHTML = `<p class="loading">Loading...</p>`;
+
       try {
         const response = await fetch(`${baseURL}/analyze-image/`, {
           method: 'POST',
@@ -84,11 +91,17 @@
         if (data.error) {
           resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
         } else {
-        resultDiv.innerHTML = `
-          <p><strong>Message:</strong> ${data.message}</p>
-          <p><strong>Output:</strong></p>
-          <pre>${data.output}</pre>
-        `;
+          const analysis = data.data;
+          resultDiv.innerHTML = `
+            <p><strong>Message:</strong> ${data.message}</p>
+            <p><strong>Product Name:</strong> ${analysis["Product Name"]}</p>
+            <p><strong>Category:</strong> ${analysis["Category"]}</p>
+            <p><strong>Quantity:</strong> ${analysis["Quantity"]}</p>
+            <p><strong>Count:</strong> ${analysis["Count"]}</p>
+            <p><strong>Expiry Date:</strong> ${analysis["Expiry Date"]}</p>
+            <p><strong>Freshness Index:</strong> ${analysis["Freshness Index"]}</p>
+            <p><strong>Shelf Life:</strong> ${analysis["Shelf Life"]}</p>
+          `;
         }
       } catch (error) {
         // Handle fetch or network errors
@@ -104,4 +117,3 @@
   </script>
 </body>
 </html>
-
