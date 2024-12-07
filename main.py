@@ -22,6 +22,7 @@ def cleanup_semaphores():
 
 cleanup_semaphores()
 
+# Initialize FastAPI app
 app = FastAPI()
 
 # Mount the frontend directory as static files
@@ -49,15 +50,16 @@ def load_model_and_initialize():
         workbook = openpyxl.Workbook()
         sheet = workbook.active
         sheet.title = "Product Analysis"
-        headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life"]
+        headers = [
+            "Product Name", "Category", "Quantity", "Count", "Expiry Date",
+            "Type of Fruit/Vegetable", "Freshness Index", "Shelf Life"
+        ]
         sheet.append(headers)
         workbook.save(file_path)
 
-# For packaged products
-packaged_product_pattern = r"\*\*Product Name:\*\* (.*?)\n\s*- \*\*Product Category:\*\* (.*?)\n\s*- \*\*Product Quantity:\*\* (.*?)\n\s*- \*\*Product Count:\*\* (.*?)\n\s*- \*\*Expiry Date:\*\* (.*?)\n"
-
-# For fruits and vegetables
-fruits_vegetables_pattern = r"\*\*Type of fruit/vegetable:\*\* (.*?)\n\s*- \*\*Freshness Index:\*\* (.*?)\n\s*- \*\*Estimated Shelf Life:\*\* (.*?)\n"
+# Regex patterns for parsing output
+packaged_product_pattern = r"- Product Name:\s*(.*?)\n\s*- Product Category:\s*(.*?)\n\s*- Product Quantity:\s*(.*?)\n\s*- Product Count:\s*(.*?)\n\s*- Expiry Date:\s*(.*)"
+fruits_vegetables_pattern = r"- Type of fruit/vegetable:\s*(.*?)\n\s*- Freshness Index:\s*(.*?)\n\s*- Estimated Shelf Life:\s*(.*)"
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_homepage():
@@ -85,7 +87,6 @@ async def analyze_image(file: UploadFile = File(...)):
 
         # Process the image with Pillow
         try:
-            # Verify and reload the image
             image = Image.open(BytesIO(contents))
             image.verify()
             image = Image.open(BytesIO(contents))
@@ -135,11 +136,11 @@ async def analyze_image(file: UploadFile = File(...)):
         output_text = processor.batch_decode(
             output_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
         )[0]
-        print(f"Model Output: {output_text}")  # Debug the model's output
+        print(f"Model Output: {output_text}")
 
-        # Parse output text to extract relevant fields
-        # Parse output text to extract relevant fields
-        product_name = category = quantity = count = expiry_date = freshness_index = shelf_life = "N/A"
+        # Initialize default values
+        product_name = category = quantity = count = expiry_date = freshness_index = shelf_life = type_of_fruit_vegetable = "N/A"
+
         try:
             # Match packaged product details
             packaged_product_match = re.search(packaged_product_pattern, output_text)
@@ -153,18 +154,14 @@ async def analyze_image(file: UploadFile = File(...)):
             # Match fruits and vegetables details
             fruits_vegetables_match = re.search(fruits_vegetables_pattern, output_text)
             if fruits_vegetables_match:
-                product_name = fruits_vegetables_match.group(1).strip()
+                type_of_fruit_vegetable = fruits_vegetables_match.group(1).strip()
                 category = "Fruit/Vegetable"
                 freshness_index = fruits_vegetables_match.group(2).strip()
                 shelf_life = fruits_vegetables_match.group(3).strip()
+
         except Exception as e:
             print(f"Error parsing output: {e}")
-
-        # If no data was matched, log a warning
-        if product_name == "N/A" and freshness_index == "N/A":
-            print("Warning: No data matched the expected patterns.")
-
-        # Update Excel with parsed results
+        # Update Excel with results
         file_path = "product_analysis.xlsx"
         try:
             workbook = openpyxl.load_workbook(file_path)
@@ -173,16 +170,22 @@ async def analyze_image(file: UploadFile = File(...)):
             workbook = openpyxl.Workbook()
             sheet = workbook.active
             sheet.title = "Product Analysis"
-            headers = ["Product Name", "Category", "Quantity", "Count", "Expiry Date", "Freshness Index", "Shelf Life"]
+            headers = [
+                "Product Name", "Category", "Quantity", "Count", "Expiry Date",
+                "Type of Fruit/Vegetable", "Freshness Index", "Shelf Life"
+            ]
             sheet.append(headers)
             workbook.save(file_path)
             workbook = openpyxl.load_workbook(file_path)
 
         sheet = workbook.active
-        sheet.append([product_name, category, quantity, count, expiry_date, freshness_index, shelf_life])
+        sheet.append([
+            product_name, category, quantity, count, expiry_date,
+            type_of_fruit_vegetable, freshness_index, shelf_life
+        ])
         workbook.save(file_path)
 
-        # Return parsed data as API response
+        # Return structured response
         return {
             "message": "Analysis completed successfully",
             "data": {
@@ -191,6 +194,7 @@ async def analyze_image(file: UploadFile = File(...)):
                 "Quantity": quantity,
                 "Count": count,
                 "Expiry Date": expiry_date,
+                "Type of Fruit/Vegetable": type_of_fruit_vegetable,
                 "Freshness Index": freshness_index,
                 "Shelf Life": shelf_life
             }
@@ -199,6 +203,7 @@ async def analyze_image(file: UploadFile = File(...)):
     except Exception as e:
         print(f"Backend error: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.get("/download-excel/")
 async def download_excel():
     file_path = "product_analysis.xlsx"
