@@ -58,7 +58,7 @@ def load_model_and_initialize():
         workbook.save(file_path)
 
 # Regex patterns for parsing output
-packaged_product_pattern = r"- Product Name:\s*(.*?)\n\s*- Product Category:\s*(.*?)\n\s*- Product Quantity:\s*(.*?)\n\s*- Product Count:\s*(.*?)\n\s*- Expiry Date:\s*(.*)"
+packaged_product_pattern = r"\*\*Product Name:\*\* (.*?)\n\s*- \*\*Product Category:\*\* (.*?)\n\s*- \*\*Product Quantity:\*\* (.*?)\n\s*- \*\*Product Count:\*\* (.*?)\n\s*- \*\*Expiry Date:\*\* (.*?)\n"
 fruits_vegetables_pattern = r"- Type of fruit/vegetable:\s*(.*?)\n\s*- Freshness Index:\s*(.*?)\n\s*- Estimated Shelf Life:\s*(.*)"
 
 @app.get("/", response_class=HTMLResponse)
@@ -139,11 +139,12 @@ async def analyze_image(file: UploadFile = File(...)):
         print(f"Model Output: {output_text}")
 
         # Initialize default values
+        # Initialize default values
         product_name = category = quantity = count = expiry_date = freshness_index = shelf_life = type_of_fruit_vegetable = "N/A"
 
         try:
-            # Match packaged product details
-            packaged_product_match = re.search(packaged_product_pattern, output_text)
+            # Match packaged product details (Markdown-style)
+            packaged_product_match = re.search(packaged_product_pattern, output_text, re.DOTALL)
             if packaged_product_match:
                 product_name = packaged_product_match.group(1).strip()
                 category = packaged_product_match.group(2).strip()
@@ -151,8 +152,8 @@ async def analyze_image(file: UploadFile = File(...)):
                 count = packaged_product_match.group(4).strip()
                 expiry_date = packaged_product_match.group(5).strip()
 
-            # Match fruits and vegetables details
-            fruits_vegetables_match = re.search(fruits_vegetables_pattern, output_text)
+            # Match fruits and vegetables details (Plain Text-style)
+            fruits_vegetables_match = re.search(fruits_vegetables_pattern, output_text, re.DOTALL)
             if fruits_vegetables_match:
                 type_of_fruit_vegetable = fruits_vegetables_match.group(1).strip()
                 category = "Fruit/Vegetable"
@@ -161,6 +162,7 @@ async def analyze_image(file: UploadFile = File(...)):
 
         except Exception as e:
             print(f"Error parsing output: {e}")
+
         # Update Excel with results
         file_path = "product_analysis.xlsx"
         try:
