@@ -92,17 +92,21 @@
           resultDiv.innerHTML = `<p class="error">Error: ${data.error}</p>`;
         } else {
           const analysis = data.data;
-          resultDiv.innerHTML = `
-            <p><strong>Message:</strong> ${data.message}</p>
-            <p><strong>Product Name:</strong> ${analysis["Product Name"]}</p>
+          resultDiv.innerHTML = analysis["Category"]==="Fruit/Vegetable" ? `
             <p><strong>Category:</strong> ${analysis["Category"]}</p>
-            <p><strong>Quantity:</strong> ${analysis["Quantity"]}</p>
-            <p><strong>Count:</strong> ${analysis["Count"]}</p>
-            <p><strong>Expiry Date:</strong> ${analysis["Expiry Date"]}</p>
             <p><strong>Type of Fruit/Vegetable:</strong> ${analysis["Type of Fruit/Vegetable"]}</p>
             <p><strong>Freshness Index:</strong> ${analysis["Freshness Index"]}</p>
             <p><strong>Shelf Life:</strong> ${analysis["Shelf Life"]}</p>
-          `;
+
+          `:
+          `
+            <p><strong>Message:</strong> ${data.message}</p>
+            <p><strong>Category:</strong> ${analysis["Category"]}</p>
+            <p><strong>Product Name:</strong> ${analysis["Product Name"]}</p>
+            <p><strong>Quantity:</strong> ${analysis["Quantity"]}</p>
+            <p><strong>Count:</strong> ${analysis["Count"]}</p>
+            <p><strong>Expiry Date:</strong> ${analysis["Expiry Date"]}</p>
+            `;
         }
       } catch (error) {
         // Handle fetch or network errors
